@@ -4,7 +4,9 @@ import androidx.fragment.app.FragmentActivity
 
 interface ParameterRequestObject {
 
-    fun getActivity(): FragmentActivity
+    fun getParentActivity(): FragmentActivity
+
+    fun getScopes(): Array<String>
 
     fun getGraphUrl(): String
 }

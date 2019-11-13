@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import com.android.volley.Response
 import com.azuresamples.msalandroidkotlinapp.MSGraphRequestWrapper
 import com.azuresamples.msalandroidkotlinapp.R
@@ -20,13 +21,6 @@ import kotlinx.android.synthetic.main.fragment_single_account_mode.*
 import org.json.JSONObject
 
 class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View, ParameterRequestObject {
-    companion object {
-
-        private const val TAG = "SingleAccountMode"
-
-        /* Azure AD v2 Configs */
-        private const val AUTHORITY = "https://login.microsoftonline.com/common"
-    }
 
     private lateinit var presenter: SingleAccountModeContract.Presenter
 
@@ -62,6 +56,8 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View, Pa
             })
     }
 
+    override fun getParentActivity() = activity!!
+
     override fun showException(exception: Exception) {
         txt_log.text = exception.toString()
     }
@@ -69,86 +65,27 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View, Pa
     /**
      * Initializes UI variables and callbacks.
      */
-    private fun initializeUI() {
+    override fun initializeUI() {
         btn_signIn.setOnClickListener {
             presenter.onSignInRequested()
         }
 
-        btn_removeAccount.setOnClickListener(View.OnClickListener {
-            if (mSingleAccountApp == null) {
-                return@OnClickListener
-            }
+        btn_removeAccount.setOnClickListener {
+            presenter.onRemoveAccountRequested()
+        }
 
-            /**
-             * Removes the signed-in account and cached tokens from this app.
-             */
-            mSingleAccountApp!!.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
-                override fun onSignOut() {
-                    updateUI(null)
-                    performOperationOnSignOut()
-                }
-
-                override fun onError(exception: MsalException) {
-                    showException(exception)
-                }
-            })
-        })
-
-        btn_callGraphInteractively.setOnClickListener(View.OnClickListener {
-            if (mSingleAccountApp == null) {
-                return@OnClickListener
-            }
-
-            /**
-             * If acquireTokenSilent() returns an error that requires an interaction,
-             * invoke acquireToken() to have the user resolve the interrupt interactively.
-             *
-             * Some example scenarios are
-             * - password change
-             * - the resource you're acquiring a token for has a stricter set of requirement than your SSO refresh token.
-             * - you're introducing a new scope which the user has never consented for.
-             */
-
-            /**
-             * If acquireTokenSilent() returns an error that requires an interaction,
-             * invoke acquireToken() to have the user resolve the interrupt interactively.
-             *
-             * Some example scenarios are
-             * - password change
-             * - the resource you're acquiring a token for has a stricter set of requirement than your SSO refresh token.
-             * - you're introducing a new scope which the user has never consented for.
-             */
-            mSingleAccountApp!!.acquireToken(activity!!, getScopes(), getAuthInteractiveCallback())
-        })
+        btn_callGraphInteractively.setOnClickListener {
+            presenter.onCallGraphInteractivelyRequested()
+        }
 
         btn_callGraphSilently.setOnClickListener(View.OnClickListener {
-            if (mSingleAccountApp == null) {
-                return@OnClickListener
-            }
-
-            /**
-             * Once you've signed the user in,
-             * you can perform acquireTokenSilent to obtain resources without interrupting the user.
-             */
-
-            /**
-             * Once you've signed the user in,
-             * you can perform acquireTokenSilent to obtain resources without interrupting the user.
-             */
-            mSingleAccountApp!!.acquireTokenSilentAsync(getScopes(), AUTHORITY, getAuthSilentCallback())
+            presenter.onCallGraphSilentlyRequested()
         })
-
     }
 
     override fun onResume() {
         super.onResume()
-
-        initializeUI()
-        /**
-         * The account may have been removed from the device (if broker is in use).
-         * Therefore, we want to update the account state by invoking loadAccount() here.
-         */
-        loadAccount()
+        presenter.onViewResumed()
     }
 
     /**
@@ -158,42 +95,6 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View, Pa
     override fun getScopes(): Array<String> {
         return scope.text.toString().toLowerCase().split(" ".toRegex()).dropLastWhile { it.isEmpty() }
             .toTypedArray()
-    }
-
-    /**
-     * Callback used in for silent acquireToken calls.
-     * Looks if tokens are in the cache (refreshes if necessary and if we don't forceRefresh)
-     * else errors that we need to do an interactive request.
-     */
-    private fun getAuthSilentCallback(): AuthenticationCallback {
-        return object : AuthenticationCallback {
-
-            override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                Log.d(TAG, "Successfully authenticated")
-
-                /* Successfully got a token, use it to call a protected resource - MSGraph */
-                callGraphAPI(authenticationResult)
-            }
-
-            override fun onError(exception: MsalException) {
-                /* Failed to acquireToken */
-                Log.d(TAG, "Authentication failed: $exception")
-                showException(exception)
-
-                if (exception is MsalClientException) {
-                    /* Exception inside MSAL, more info inside MsalError.java */
-                } else if (exception is MsalServiceException) {
-                    /* Exception when communicating with the STS, likely config issue */
-                } else if (exception is MsalUiRequiredException) {
-                    /* Tokens expired or no session, retry with interactive */
-                }
-            }
-
-            override fun onCancel() {
-                /* User cancelled the authentication */
-                Log.d(TAG, "User cancelled login.")
-            }
-        }
     }
 
     //

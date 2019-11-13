@@ -19,9 +19,9 @@ interface SingleAccountModeContract {
 
         fun showUserLoggedOut()
 
-        fun getScopes(): Array<String>
-
         fun displayGraphResult(graphResponse: JSONObject)
+
+        fun initializeUI()
     }
 
     interface Presenter {
@@ -36,6 +36,14 @@ interface SingleAccountModeContract {
         fun onSingleAccountApplicationCreationFailed(exception: MsalException)
 
         fun onSignInRequested()
+
+        fun onRemoveAccountRequested()
+
+        fun onCallGraphInteractivelyRequested()
+
+        fun onCallGraphSilentlyRequested()
+
+        fun onViewResumed()
     }
 
 }
