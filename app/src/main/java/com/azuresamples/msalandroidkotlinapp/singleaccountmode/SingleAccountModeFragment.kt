@@ -20,14 +20,17 @@ import com.microsoft.identity.client.exception.MsalUiRequiredException
 import kotlinx.android.synthetic.main.fragment_single_account_mode.*
 import org.json.JSONObject
 
-class SingleAccountModeFragment : Fragment() {
-    private val TAG = SingleAccountModeFragment::class.java.simpleName
+class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
 
-    /* Azure AD v2 Configs */
-    private val AUTHORITY = "https://login.microsoftonline.com/common"
+    companion object {
 
-    /* Azure AD Variables */
-    private var mSingleAccountApp: ISingleAccountPublicClientApplication? = null
+        private const val TAG = "SingleAccountModeFragment"
+
+        /* Azure AD v2 Configs */
+        private const val AUTHORITY = "https://login.microsoftonline.com/common"
+    }
+
+    private lateinit var presenter: SingleAccountModeContract.Presenter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,29 +39,33 @@ class SingleAccountModeFragment : Fragment() {
     ): View? {
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_single_account_mode, container, false)
+        presenter = SingleAccountModePresenter(this)
+        return view
+    }
 
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+        presenter.onViewReady()
+    }
+
+    override fun createSingleAccountApplication() {
         // Creates a PublicClientApplication object with res/raw/auth_config_single_account.json
         PublicClientApplication.createSingleAccountPublicClientApplication(
             context as Context,
             R.raw.auth_config_single_account,
             object : IPublicClientApplication.ISingleAccountApplicationCreatedListener {
                 override fun onCreated(application: ISingleAccountPublicClientApplication) {
-                    /**
-                     * This test app assumes that the app is only going to support one account.
-                     * This requires "account_mode" : "SINGLE" in the config json file.
-                     *
-                     */
-                    mSingleAccountApp = application
-
-                    loadAccount()
+                    presenter.onSingleAccountApplicationCreationSuccess(application)
                 }
 
                 override fun onError(exception: MsalException) {
-                    txt_log.text = exception.toString()
+                    presenter.onSingleAccountApplicationCreationFailed(exception)
                 }
             })
+    }
 
-        return view
+    override fun showException(exceptionMessage: String) {
+        txt_log.text = exceptionMessage
     }
 
     /**
