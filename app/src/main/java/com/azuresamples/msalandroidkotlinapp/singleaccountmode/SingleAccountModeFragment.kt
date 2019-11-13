@@ -1,4 +1,4 @@
-package com.azuresamples.msalandroidkotlinapp
+package com.azuresamples.msalandroidkotlinapp.singleaccountmode
 
 import android.app.Activity
 import android.content.Context
@@ -10,6 +10,8 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.android.volley.Response
+import com.azuresamples.msalandroidkotlinapp.MSGraphRequestWrapper
+import com.azuresamples.msalandroidkotlinapp.R
 import com.microsoft.identity.client.*
 import com.microsoft.identity.client.exception.MsalClientException
 import com.microsoft.identity.client.exception.MsalException
