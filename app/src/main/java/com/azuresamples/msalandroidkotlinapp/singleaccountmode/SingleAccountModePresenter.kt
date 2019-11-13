@@ -23,7 +23,7 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
     }
 
     /* Azure AD Variables */
-    private var mSingleAccountApp: ISingleAccountPublicClientApplication? = null
+    private var singleAccountApp: ISingleAccountPublicClientApplication? = null
 
     override fun onViewReady() {
         view.createSingleAccountApplication()
@@ -35,7 +35,7 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
          * This requires "account_mode" : "SINGLE" in the config json file.
          *
          */
-        mSingleAccountApp = application
+        singleAccountApp = application
 
         loadAccount()
     }
@@ -45,11 +45,11 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
      * If the account is removed the device, the app can also perform the clean-up work in onAccountChanged().
      */
     private fun loadAccount() {
-        if (mSingleAccountApp == null) {
+        if (singleAccountApp == null) {
             return
         }
 
-        mSingleAccountApp!!.getCurrentAccountAsync(object :
+        singleAccountApp!!.getCurrentAccountAsync(object :
             ISingleAccountPublicClientApplication.CurrentAccountCallback {
             override fun onAccountLoaded(activeAccount: IAccount?) {
                 view.updateUI(activeAccount)
@@ -69,11 +69,11 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
     }
 
     override fun onSignInRequested() {
-        if (mSingleAccountApp == null) {
+        if (singleAccountApp == null) {
             return
         }
 
-        mSingleAccountApp!!.signIn(
+        singleAccountApp!!.signIn(
             parameterRequestObject.getParentActivity(),
             "",
             parameterRequestObject.getScopes(), getAuthInteractiveCallback())
@@ -94,14 +94,14 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
 
     override fun onRemoveAccountRequested() {
 
-        if (mSingleAccountApp == null) {
+        if (singleAccountApp == null) {
             return
         }
 
         /**
          * Removes the signed-in account and cached tokens from this app.
          */
-        mSingleAccountApp!!.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
+        singleAccountApp!!.signOut(object : ISingleAccountPublicClientApplication.SignOutCallback {
             override fun onSignOut() {
                 view.updateUI(null)
                 view.showUserLoggedOut()
@@ -114,7 +114,7 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
     }
 
     override fun onCallGraphInteractivelyRequested() {
-        if (mSingleAccountApp == null) {
+        if (singleAccountApp == null) {
             return
         }
 
@@ -137,13 +137,13 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
          * - the resource you're acquiring a token for has a stricter set of requirement than your SSO refresh token.
          * - you're introducing a new scope which the user has never consented for.
          */
-        mSingleAccountApp!!.acquireToken(
+        singleAccountApp!!.acquireToken(
             parameterRequestObject.getParentActivity(),
             parameterRequestObject.getScopes(), getAuthInteractiveCallback())
     }
 
     override fun onCallGraphSilentlyRequested() {
-        if (mSingleAccountApp == null) {
+        if (singleAccountApp == null) {
             return
         }
 
@@ -156,7 +156,7 @@ class SingleAccountModePresenter(private val view: SingleAccountModeContract.Vie
          * Once you've signed the user in,
          * you can perform acquireTokenSilent to obtain resources without interrupting the user.
          */
-        mSingleAccountApp!!.acquireTokenSilentAsync(parameterRequestObject.getScopes(),
+        singleAccountApp!!.acquireTokenSilentAsync(parameterRequestObject.getScopes(),
             AUTHORITY, getAuthSilentCallback())
     }
 
