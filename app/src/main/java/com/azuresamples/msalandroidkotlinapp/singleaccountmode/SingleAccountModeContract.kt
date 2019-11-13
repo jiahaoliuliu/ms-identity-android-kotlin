@@ -1,7 +1,9 @@
 package com.azuresamples.msalandroidkotlinapp.singleaccountmode
 
+import com.microsoft.identity.client.IAccount
 import com.microsoft.identity.client.ISingleAccountPublicClientApplication
 import com.microsoft.identity.client.exception.MsalException
+import org.json.JSONObject
 
 interface SingleAccountModeContract {
 
@@ -11,7 +13,15 @@ interface SingleAccountModeContract {
          */
         fun createSingleAccountApplication()
 
-        fun showException(toString: String)
+        fun showException(exception: Exception)
+
+        fun updateUI(activeAccount: IAccount?)
+
+        fun showUserLoggedOut()
+
+        fun getScopes(): Array<String>
+
+        fun displayGraphResult(graphResponse: JSONObject)
     }
 
     interface Presenter {
@@ -24,6 +34,8 @@ interface SingleAccountModeContract {
         fun onSingleAccountApplicationCreationSuccess(application: ISingleAccountPublicClientApplication)
 
         fun onSingleAccountApplicationCreationFailed(exception: MsalException)
+
+        fun onSignInRequested()
     }
 
 }

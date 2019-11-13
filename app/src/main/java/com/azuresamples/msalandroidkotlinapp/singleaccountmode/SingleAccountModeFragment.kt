@@ -1,6 +1,5 @@
 package com.azuresamples.msalandroidkotlinapp.singleaccountmode
 
-import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -20,11 +19,10 @@ import com.microsoft.identity.client.exception.MsalUiRequiredException
 import kotlinx.android.synthetic.main.fragment_single_account_mode.*
 import org.json.JSONObject
 
-class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
-
+class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View, ParameterRequestObject {
     companion object {
 
-        private const val TAG = "SingleAccountModeFragment"
+        private const val TAG = "SingleAccountMode"
 
         /* Azure AD v2 Configs */
         private const val AUTHORITY = "https://login.microsoftonline.com/common"
@@ -39,7 +37,7 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
     ): View? {
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_single_account_mode, container, false)
-        presenter = SingleAccountModePresenter(this)
+        presenter = SingleAccountModePresenter(this, this)
         return view
     }
 
@@ -64,22 +62,17 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
             })
     }
 
-    override fun showException(exceptionMessage: String) {
-        txt_log.text = exceptionMessage
+    override fun showException(exception: Exception) {
+        txt_log.text = exception.toString()
     }
 
     /**
      * Initializes UI variables and callbacks.
      */
     private fun initializeUI() {
-
-        btn_signIn.setOnClickListener(View.OnClickListener {
-            if (mSingleAccountApp == null) {
-                return@OnClickListener
-            }
-
-            mSingleAccountApp!!.signIn(activity as Activity, "", getScopes(), getAuthInteractiveCallback())
-        })
+        btn_signIn.setOnClickListener {
+            presenter.onSignInRequested()
+        }
 
         btn_removeAccount.setOnClickListener(View.OnClickListener {
             if (mSingleAccountApp == null) {
@@ -96,7 +89,7 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
                 }
 
                 override fun onError(exception: MsalException) {
-                    displayError(exception)
+                    showException(exception)
                 }
             })
         })
@@ -162,37 +155,9 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
      * Extracts a scope array from a text field,
      * i.e. from "User.Read User.ReadWrite" to ["user.read", "user.readwrite"]
      */
-    private fun getScopes(): Array<String> {
+    override fun getScopes(): Array<String> {
         return scope.text.toString().toLowerCase().split(" ".toRegex()).dropLastWhile { it.isEmpty() }
             .toTypedArray()
-    }
-
-    /**
-     * Load the currently signed-in account, if there's any.
-     * If the account is removed the device, the app can also perform the clean-up work in onAccountChanged().
-     */
-    private fun loadAccount() {
-        if (mSingleAccountApp == null) {
-            return
-        }
-
-        mSingleAccountApp!!.getCurrentAccountAsync(object :
-            ISingleAccountPublicClientApplication.CurrentAccountCallback {
-            override fun onAccountLoaded(activeAccount: IAccount?) {
-                updateUI(activeAccount)
-            }
-
-            override fun onAccountChanged(priorAccount: IAccount?, currentAccount: IAccount?) {
-                if (currentAccount == null) {
-                    // Perform a cleanup task as the signed-in account changed.
-                    performOperationOnSignOut()
-                }
-            }
-
-            override fun onError(exception: MsalException) {
-                txt_log.text = exception.toString()
-            }
-        })
     }
 
     /**
@@ -213,7 +178,7 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
             override fun onError(exception: MsalException) {
                 /* Failed to acquireToken */
                 Log.d(TAG, "Authentication failed: $exception")
-                displayError(exception)
+                showException(exception)
 
                 if (exception is MsalClientException) {
                     /* Exception inside MSAL, more info inside MsalError.java */
@@ -231,69 +196,11 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
         }
     }
 
-    /**
-     * Callback used for interactive request.
-     * If succeeds we use the access token to call the Microsoft Graph.
-     * Does not check cache.
-     */
-    private fun getAuthInteractiveCallback(): AuthenticationCallback {
-        return object : AuthenticationCallback {
-
-            override fun onSuccess(authenticationResult: IAuthenticationResult) {
-                /* Successfully got a token, use it to call a protected resource - MSGraph */
-                Log.d(TAG, "Successfully authenticated")
-                Log.d(TAG, "ID Token: " + authenticationResult.account.claims!!["id_token"])
-
-                /* Update account */
-                updateUI(authenticationResult.account)
-
-                /* call graph */
-                callGraphAPI(authenticationResult)
-            }
-
-            override fun onError(exception: MsalException) {
-                /* Failed to acquireToken */
-                Log.d(TAG, "Authentication failed: $exception")
-                displayError(exception)
-
-                if (exception is MsalClientException) {
-                    /* Exception inside MSAL, more info inside MsalError.java */
-                } else if (exception is MsalServiceException) {
-                    /* Exception when communicating with the STS, likely config issue */
-                }
-            }
-
-            override fun onCancel() {
-                /* User canceled the authentication */
-                Log.d(TAG, "User cancelled login.")
-            }
-        }
-    }
-
-    /**
-     * Make an HTTP request to obtain MSGraph data
-     */
-    private fun callGraphAPI(authenticationResult: IAuthenticationResult) {
-        MSGraphRequestWrapper.callGraphAPIWithVolley(
-            context as Context,
-            msgraph_url.text.toString(),
-            authenticationResult.accessToken,
-            Response.Listener<JSONObject> { response ->
-                /* Successfully called graph, process data and send to UI */
-                Log.d(TAG, "Response: $response")
-                displayGraphResult(response)
-            },
-            Response.ErrorListener { error ->
-                Log.d(TAG, "Error: $error")
-                displayError(error)
-            })
-    }
-
     //
     // Helper methods manage UI updates
     // ================================
     // displayGraphResult() - Display the graph response
-    // displayError() - Display the graph response
+    // showException() - Display the graph response
     // updateSignedInUI() - Updates UI when the user is signed in
     // updateSignedOutUI() - Updates UI when app sign out succeeds
     //
@@ -301,21 +208,16 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
     /**
      * Display the graph response
      */
-    private fun displayGraphResult(graphResponse: JSONObject) {
+    override fun displayGraphResult(graphResponse: JSONObject) {
         txt_log.text = graphResponse.toString()
     }
 
-    /**
-     * Display the error message
-     */
-    private fun displayError(exception: Exception) {
-        txt_log.text = exception.toString()
-    }
+    override fun getGraphUrl() = msgraph_url.text.toString()
 
     /**
      * Updates UI based on the current account.
      */
-    private fun updateUI(account: IAccount?) {
+    override fun updateUI(account: IAccount?) {
 
         if (account != null) {
             btn_signIn.isEnabled = false
@@ -335,7 +237,7 @@ class SingleAccountModeFragment : Fragment(), SingleAccountModeContract.View {
     /**
      * Updates UI when app sign out succeeds
      */
-    private fun performOperationOnSignOut() {
+    override fun showUserLoggedOut() {
         val signOutText = "Signed Out."
         current_user.text = ""
         Toast.makeText(context, signOutText, Toast.LENGTH_SHORT)
