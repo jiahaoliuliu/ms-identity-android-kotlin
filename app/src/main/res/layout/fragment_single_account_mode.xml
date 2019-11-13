@@ -3,13 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".SingleAccountModeFragment">
+    tools:context=".singleaccountmode.SingleAccountModeFragment">
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        tools:context=".SingleAccountModeFragment">
+        tools:context=".singleaccountmode.SingleAccountModeFragment">
 
         <LinearLayout
             android:id="@+id/activity_main"
